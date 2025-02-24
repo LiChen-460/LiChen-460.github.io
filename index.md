@@ -1,10 +1,4 @@
-<style>
-    footer, a[href*="github.io"] {
-        display: none !important;
-    }
-</style>
-
-# 我的個人網站
+# Li Chen, Hsu 許秝甄
 
 ## 👩‍🎓 學歷
 - 苗栗縣立啟新國民中學
@@ -32,3 +26,9 @@
 
 [Instagram](https://www.instagram.com/star_0990/)
 
+
+<style>
+    footer, a[href*="github.io"] {
+        display: none !important;
+    }
+</style>
