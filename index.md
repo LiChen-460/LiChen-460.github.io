@@ -1,3 +1,9 @@
+<style>
+    footer, a[href*="github.io"] {
+        display: none !important;
+    }
+</style>
+
 # 我的個人網站
 
 ## 👩‍🎓 學歷
