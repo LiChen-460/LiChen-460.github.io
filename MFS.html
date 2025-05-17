@@ -39,6 +39,12 @@
       flex: 1;
       padding-right: 6px;
     }
+
+    #info-content::-webkit-scrollbar {
+      width: 0px; /* 捲軸寬度 */
+      margin-right: 0px; /* */
+    }
+
     #info-content h2 {
       font-size: 18px; margin-top: 0;
     }
@@ -105,6 +111,11 @@
       position: relative;
     }
 
+    #user-box::-webkit-scrollbar {
+      width: 0px; /* 捲軸寬度 */
+      margin-right: 0px; /* */
+    }
+
     /* 左邊關閉鍵，跟右邊一樣樣式 */
     #user-close-btn {
       position: absolute;
@@ -157,6 +168,28 @@
       color: #224488;
     }
 
+    .tab {
+      padding: 6px 12px;
+      background-color: #f0f0f0;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .tab.active {
+      background-color: #224488;
+      color: white;
+    }
+
+    .tab-button.active {
+      font-weight: bold;
+      background: #f0f0f0 !important;
+    }
+
+
+
+
   </style>
 </head>
 <body>
@@ -182,11 +215,14 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
 
+
     // 限制地圖能看到的邊界
     const worldBounds = L.latLngBounds(
       L.latLng(-85.0511, -Infinity),
       L.latLng(85.0511, Infinity)
     );
+
+
 
     //地圖設定
     const map = L.map('map', {
@@ -198,59 +234,138 @@
       maxBoundsViscosity: 0.8  //在地圖邊邊拉一下會有回彈效果
     });
     
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors' ,
-      
     }).addTo(map);
 
-    map.on('moveend', () => {
-  if (!worldBounds.contains(map.getCenter())) {
-    map.panInsideBounds(worldBounds, { animate: true }); //限制地圖不能拉超過邊界
-  }
-});
 
-    const locations = [
-      {
-        name: "台北101",
-        lat: 25.0330,
-        lng: 121.5654,
-        description: "台灣最知名的地標與觀景台。<br/><br/>這裡有更多描述內容會讓你看到滾動效果：Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus.sum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussectetur adipiscing elit. Sed non risus Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor.",
-        image: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Taipei_101_purple_sky.jpg"
-      },
-      {
-        name: "中正紀念堂",
-        lat: 25.0345,
-        lng: 121.5215,
-        description: "歷史文化場館，紀念蔣中正總統。",
-        image: "https://upload.wikimedia.org/wikipedia/commons/f/f4/Chiang_Kai-shek_memorial_amk.jpg"
+    map.on('moveend', () => {
+    if (!worldBounds.contains(map.getCenter())) {
+        map.panInsideBounds(worldBounds, { animate: true }); //限制地圖不能拉超過邊界
       }
-    ];
+    });
+
+
 
     const markersMap = {};
     const infoBox = document.getElementById("info-box");
     const infoContent = document.getElementById("info-content");
     const closeBtn = document.getElementById("close-btn");
 
+    /*
+    const locations = [
+      {
+        name: "台北101",
+        lat: 25.0330,
+        lng: 121.5654,
+        description: "台灣最知名的地標與觀景台。<br/><br/>這裡有更多描述內容會讓你看到滾動效果：Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus.sum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussectetur adipiscing elit. Sed non risus Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor.",
+        image: "pic1.png"
+      },
+      {
+        name: "中正紀念堂",
+        lat: 25.0345,
+        lng: 121.5215,
+        description: "歷史文化場館，紀念蔣中正總統。",
+        image: "pic2.jpg"
+      }
+    ];*/
+  
+  // 取得資料 & 加入地圖
+  fetch("http://localhost:5000/api/locations")
+    .then(response => response.json())
+    .then(data => {
+      data.forEach(loc => {
+        for (let i = -2; i <= 2; i++) {
+        const offsetLng = parseFloat(loc.MEME_LONGITUDE) + i * 360;
+        const marker = L.marker([parseFloat(loc.MEME_LATITUDE), offsetLng]).addTo(map);
+        marker.on("click", () => {
+          map.flyTo(marker.getLatLng(), 13, {animate: true,duration: 1});
+          showInfo({
+            name: loc.MEME_NAME,
+            image: loc.MEME_IMAGE,
+            country: loc.MEME_COUNTRY,
+            area: loc.MEME_AREA,
+            link: loc.MEME_LINK,
+            description: loc.MEME_DESCRIPTION,
+            lat: loc.MEME_LATITUDE,
+            lng: loc.MEME_LONGITUDE
+          });
+        });
+        if (i === 0) markersMap[loc.MEME_NAME] = marker;
+      }
+      });
+    })
+    .catch(error => {
+      console.error("抓取地圖資料失敗：", error);
+    });
+
+
     function showInfo(loc) {
+      const isFavorite = favoritePlaces.includes(loc.name);
+      const favBtnText = isFavorite ? "★ 已收藏" : "☆ 收藏";
+      
       infoContent.innerHTML = `
-        <h2>${loc.name}</h2>
-        <p>${loc.description}</p>
         <img src="${loc.image}" alt="${loc.name}" />
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+          <h2 style="margin: 0;">${loc.name}</h2>
+          <button id="fav-btn" style="font-size: 16px; background: none; border: none; cursor: pointer;">${favBtnText}</button>
+        </div>
+
+        <div style="margin-top: 15px;">
+          <div style="display: flex; border-bottom: 1px solid #ccc;">
+            <button id="tab-intro" class="tab-button active" style="flex: 1; padding: 10px; border: none; background: #f0f0f0; cursor: pointer;">介紹</button>
+            <button id="tab-comment" class="tab-button" style="flex: 1; padding: 10px; border: none; background: #fff; cursor: pointer;">評論</button>
+          </div>
+          <div id="tab-content" style="padding: 10px; font-size: 14px;">
+            ${loc.description}
+          </div>
+        </div>
       `;
-      infoBox.classList.add("active");
+
+  // 加入 tab 切換邏輯
+  const tabIntro = document.getElementById("tab-intro");
+  const tabComment = document.getElementById("tab-comment");
+  const tabContent = document.getElementById("tab-content");
+
+  tabIntro.addEventListener("click", () => {
+    tabIntro.classList.add("active");
+    tabComment.classList.remove("active");
+    tabIntro.style.background = "#f0f0f0";
+    tabComment.style.background = "#fff";
+    tabContent.innerHTML = loc.description;
+  });
+
+  tabComment.addEventListener("click", () => {
+    tabIntro.classList.remove("active");
+    tabComment.classList.add("active");
+    tabIntro.style.background = "#fff";
+    tabComment.style.background = "#f0f0f0";
+    tabContent.innerHTML = "（尚無評論）";
+  });
+
+  // 收藏按鈕處理
+  const favBtn = document.getElementById("fav-btn");
+  favBtn.addEventListener("click", () => {
+    if (!isLoggedIn) {
+      alert("請先登入才能收藏地點！");
+      return;
     }
 
-    locations.forEach(loc => {
-      for (let i = -2; i <= 2; i++) {
-        const offsetLng = loc.lng + i * 360;
-        const marker = L.marker([loc.lat, offsetLng]).addTo(map);
-        marker.on('click', () => {
-          map.flyTo(marker.getLatLng(), 13, {animate: true,duration: 1});
-          showInfo(loc);
-        });
-        if (i === 0) markersMap[loc.name] = marker;
-      }
-    });
+    if (favoritePlaces.includes(loc.name)) {
+      favoritePlaces = favoritePlaces.filter(name => name !== loc.name);
+      favBtn.textContent = "☆ 收藏";
+    } else {
+      favoritePlaces.push(loc.name);
+      favBtn.textContent = "★ 已收藏";
+    }
+
+    updateUserBoxContent();
+  });
+
+  infoBox.classList.add("active");
+}
+
 
     closeBtn.addEventListener("click", () => {
       infoBox.classList.remove("active");
@@ -259,7 +374,7 @@
     // 登入模擬
     let isLoggedIn = false;
     let userName = "訪客";
-    let favoritePlaces = ["台北101", "中正紀念堂"];
+    let favoritePlaces = [];
 
     const userStatusBtn = document.getElementById("user-status-btn");
     const userBoxWrapper = document.getElementById("user-box-wrapper");
