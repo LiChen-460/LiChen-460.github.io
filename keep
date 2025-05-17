@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFS</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        img {
+            border-radius: 10px;
+            max-width: 100%;
+            height: auto;
+        }
+        h1, h2, p {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>MFS</h1>
+    
+    <h2>🎓 MAP</h2>
+     <img src="1.jpg" alt="map" width="700">
+
+    <h2>🍜 FOOD</h2>
+    <img src="2.jpg" alt="food" width="700">
+
+    <h2>🎯 SMILES</h2>
+    <img src="3.jpg" alt="smile" width="700">
+</body>
+</html>
