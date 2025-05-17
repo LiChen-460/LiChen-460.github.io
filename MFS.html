@@ -272,70 +272,106 @@
     ];*/
   
   // 取得資料 & 加入地圖
-  fetch("http://localhost:5000/api/locations")
-    .then(response => response.json())
-    .then(data => {
-      data.forEach(loc => {
-        for (let i = -2; i <= 2; i++) {
-        const offsetLng = parseFloat(loc.MEME_LONGITUDE) + i * 360;
-        const marker = L.marker([parseFloat(loc.MEME_LATITUDE), offsetLng]).addTo(map);
+  let locations = []; // 儲存整理過的地點資料
+
+fetch("http://localhost:5000/api/locations")
+  .then(response => response.json())
+  .then(data => {
+    data.forEach(raw => {
+      const loc = {
+        name: raw.MEME_NAME,
+        image: raw.MEME_IMAGE,
+        country: raw.MEME_COUNTRY,
+        area: raw.MEME_AREA,
+        link: raw.MEME_LINK,
+        description: raw.MEME_DESCRIPTION,
+        lat: parseFloat(raw.MEME_LATITUDE),
+        lng: parseFloat(raw.MEME_LONGITUDE)
+      };
+      locations.push(loc);
+
+      // 複製地圖針到多個經度，防止滑動時消失
+      for (let i = -2; i <= 2; i++) {
+        const offsetLng = loc.lng + i * 360;
+        const marker = L.marker([loc.lat, offsetLng]).addTo(map);
         marker.on("click", () => {
-          map.flyTo(marker.getLatLng(), 13, {animate: true,duration: 1});
-          showInfo({
-            name: loc.MEME_NAME,
-            image: loc.MEME_IMAGE,
-            country: loc.MEME_COUNTRY,
-            area: loc.MEME_AREA,
-            link: loc.MEME_LINK,
-            description: loc.MEME_DESCRIPTION,
-            lat: loc.MEME_LATITUDE,
-            lng: loc.MEME_LONGITUDE
-          });
+          map.flyTo(marker.getLatLng(), 13, { animate: true, duration: 1 });
+          showInfo(loc); // 呼叫顯示右側資訊欄
         });
-        if (i === 0) markersMap[loc.MEME_NAME] = marker;
+        if (i === 0) markersMap[loc.name] = marker;
       }
-      });
-    })
-    .catch(error => {
-      console.error("抓取地圖資料失敗：", error);
     });
+  })
+  .catch(error => {
+    console.error("抓取地圖資料失敗：", error);
+  });
 
 
     function showInfo(loc) {
-      const isFavorite = favoritePlaces.includes(loc.name);
-      const favBtnText = isFavorite ? "★ 已收藏" : "☆ 收藏";
-      
-      infoContent.innerHTML = `
-        <img src="${loc.image}" alt="${loc.name}" />
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-          <h2 style="margin: 0;">${loc.name}</h2>
-          <button id="fav-btn" style="font-size: 16px; background: none; border: none; cursor: pointer;">${favBtnText}</button>
-        </div>
+  const isFavorite = favoritePlaces.includes(loc.name);
+  const favBtnText = isFavorite ? "★ 已收藏" : "☆ 收藏";
+  
+  infoContent.innerHTML = `
+    <img src="${loc.image}" alt="${loc.name}" />
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+      <h2 style="margin: 0;">${loc.name}</h2>
+      <button id="fav-btn" style="font-size: 16px; background: none; border: none; cursor: pointer;">${favBtnText}</button>
+    </div>
 
-        <div style="margin-top: 15px;">
-          <div style="display: flex; border-bottom: 1px solid #ccc;">
-            <button id="tab-intro" class="tab-button active" style="flex: 1; padding: 10px; border: none; background: #f0f0f0; cursor: pointer;">介紹</button>
-            <button id="tab-comment" class="tab-button" style="flex: 1; padding: 10px; border: none; background: #fff; cursor: pointer;">評論</button>
-          </div>
-          <div id="tab-content" style="padding: 10px; font-size: 14px;">
-            ${loc.description}
-          </div>
+    <div style="margin-top: 15px;">
+      <div style="display: flex; border-bottom: 1px solid #ccc;">
+        <button id="tab-intro" class="tab-button active" style="flex: 1; padding: 10px; border: none; background: #f0f0f0; cursor: pointer;">介紹</button>
+        <button id="tab-comment" class="tab-button" style="flex: 1; padding: 10px; border: none; background: #fff; cursor: pointer;">評論</button>
+      </div>
+      <div id="tab-content" style="padding: 10px;">
+        <div style="margin-bottom: 8px;">
+          <strong>連結：</strong> <br>
+          <a href="${loc.link}" target="_blank" style="color: #007bff; text-decoration: underline;">
+            ${loc.link}
+          </a>
         </div>
-      `;
+        <div style="margin-bottom: 8px;">
+          <strong>地點：</strong> 
+          ${loc.country}${loc.area}
+        </div>
+        <div>
+          <strong>介紹：</strong><br/>
+          ${loc.description}
+        </div>
+      </div>
+    </div>
+  `;
 
-  // 加入 tab 切換邏輯
+  // 取得 tab 按鈕和內容容器元素
   const tabIntro = document.getElementById("tab-intro");
   const tabComment = document.getElementById("tab-comment");
   const tabContent = document.getElementById("tab-content");
 
+  // 介紹 tab 點擊事件
   tabIntro.addEventListener("click", () => {
     tabIntro.classList.add("active");
     tabComment.classList.remove("active");
     tabIntro.style.background = "#f0f0f0";
     tabComment.style.background = "#fff";
-    tabContent.innerHTML = loc.description;
+    tabContent.innerHTML = `
+      <div style="margin-bottom: 8px;">
+        <strong>連結：</strong> <br>
+        <a href="${loc.link}" target="_blank" style="color: #007bff; text-decoration: underline;">
+          ${loc.link}
+        </a>
+      </div>
+      <div style="margin-bottom: 8px;">
+        <strong>地點：</strong> 
+        ${loc.country}${loc.area}
+      </div>
+      <div>
+        <strong>介紹：</strong><br/>
+        ${loc.description}
+      </div>
+    `;
   });
 
+  // 評論 tab 點擊事件
   tabComment.addEventListener("click", () => {
     tabIntro.classList.remove("active");
     tabComment.classList.add("active");
@@ -343,6 +379,7 @@
     tabComment.style.background = "#f0f0f0";
     tabContent.innerHTML = "（尚無評論）";
   });
+
 
   // 收藏按鈕處理
   const favBtn = document.getElementById("fav-btn");
@@ -377,56 +414,72 @@
     let favoritePlaces = [];
 
     const userStatusBtn = document.getElementById("user-status-btn");
-    const userBoxWrapper = document.getElementById("user-box-wrapper");
-    const userBoxHeader = document.getElementById("user-box-header");
-    const userBoxContent = document.getElementById("user-box-content");
-    const userCloseBtn = document.getElementById("user-close-btn");
+const userBoxWrapper = document.getElementById("user-box-wrapper");
+const userBoxHeader = document.getElementById("user-box-header");
+const userBoxContent = document.getElementById("user-box-content");
+const userCloseBtn = document.getElementById("user-close-btn");
 
-    function updateUserBoxContent() {
-      userBoxHeader.textContent = isLoggedIn ? `👤 ${userName}` : "請先登入";
-      if (isLoggedIn) {
-        userBoxContent.innerHTML = `
-          <p>歡迎回來，${userName}！</p>
-          <p>你的收藏地點：</p>
-          <ul id="fav-list">
-            ${favoritePlaces.map(place => `<li><button type="button">${place}</button></li>`).join("")}
-          </ul>
-        `;
-        setTimeout(() => {
-          const favButtons = document.querySelectorAll('#fav-list button');
-          favButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-              const placeName = btn.textContent;
-              const marker = markersMap[placeName];
-              if (marker) {
-                map.flyTo(marker.getLatLng(), 13, {animate: true,duration: 1});
-                const loc = locations.find(l => l.name === placeName);
-                if (loc) {
-                  showInfo(loc);
-                }
-              } else {
-                alert("找不到此地點的大頭針");
-              }
-            });
-          });
-        }, 0);
-      } else {
-        userBoxContent.innerHTML = `
-          <p>請先登入以檢視收藏地點</p>
-          <button id="login-btn">登入</button>
-        `;
-        setTimeout(() => {
-          const loginBtn = document.getElementById("login-btn");
-          loginBtn.addEventListener("click", () => {
-            isLoggedIn = true;
-            userName = "阿花";
-            userStatusBtn.textContent = userName;
-            updateUserBoxContent();
-            userBoxWrapper.classList.add("active");
-          });
-        }, 0);
-      }
-    }
+// 更新使用者資訊框
+function updateUserBoxContent() {
+  userBoxHeader.textContent = isLoggedIn ? `👤 ${userName}` : "訪客";
+  if (isLoggedIn) {
+    userBoxContent.innerHTML = `
+      <p>${userName}</p>
+      <p>你的收藏地點：</p>
+      <ul id="fav-list">
+        ${favoritePlaces.map(place => `<li><button type="button">${place}</button></li>`).join("")}
+      </ul>
+      <button id="logout-btn" style="margin-top: 10px;">登出</button>
+    `;
+
+    setTimeout(() => {
+      const favButtons = document.querySelectorAll('#fav-list button');
+      favButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const placeName = btn.textContent;
+          const marker = markersMap[placeName];
+          if (marker) {
+            map.flyTo(marker.getLatLng(), 13, { animate: true, duration: 1 });
+            const loc = locations.find(l => l.name === placeName);
+            if (loc) {
+              showInfo(loc);
+            }
+          } else {
+            alert("找不到此地點的大頭針");
+          }
+        });
+      });
+
+      const logoutBtn = document.getElementById("logout-btn");
+      logoutBtn.addEventListener("click", () => {
+        if (confirm("確定要登出嗎？")) {
+          isLoggedIn = false;
+          userName = "";
+          favoritePlaces = []; // ← 登出時清空收藏
+          userStatusBtn.textContent = "訪客";
+          updateUserBoxContent();
+          userBoxWrapper.classList.remove("active");
+          infoBox.classList.remove("active");
+        }
+      });
+    }, 0);
+  } else {
+    userBoxContent.innerHTML = `
+      <p>請先登入以檢視收藏地點</p>
+      <button id="login-btn">登入</button>
+    `;
+    setTimeout(() => {
+      const loginBtn = document.getElementById("login-btn");
+      loginBtn.addEventListener("click", () => {
+        isLoggedIn = true;
+        userName = "阿花";
+        userStatusBtn.textContent = userName;
+        updateUserBoxContent();
+        userBoxWrapper.classList.add("active");
+      });
+    }, 0);
+  }
+}
 
     userStatusBtn.addEventListener("click", () => {
       userBoxWrapper.classList.toggle("active");
