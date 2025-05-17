@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8" />
+  <title>主題地圖 - 收藏點互動範例</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    html, body {
+      margin: 0; padding: 0; height: 100%; overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    #map {
+      width: 100%; height: 100%; position: absolute;
+    }
+    /*右邊資訊框視覺效果設定*/
+    #info-box {
+      position: absolute;
+      top: 10px; right: 10px;
+      width: 300px; height: calc(100vh - 20px);
+      background-color: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      padding: 20px;
+      box-sizing: border-box;
+      transform: translateX(110%);
+      transition: transform 0.3s ease;
+      overflow: hidden;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+    }
+    /*右邊資訊框的滑動動畫*/
+    #info-box.active {
+      transform: translateX(0);
+    }
+    #info-content {
+      overflow-y: auto;
+      flex: 1;
+      padding-right: 6px;
+    }
+    #info-content h2 {
+      font-size: 18px; margin-top: 0;
+    }
+    #info-content p {
+      font-size: 14px; margin-bottom: 10px;
+    }
+    #info-content img {
+      max-width: 100%; border-radius: 8px; margin-top: 10px;
+    }
+    /*右邊資訊框的關閉按鈕*/
+    #close-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: #eee; border: none;
+      border-radius: 50%; width: 24px; height: 24px;
+      text-align: center; cursor: pointer;
+      font-weight: bold; z-index: 1001;
+    }
+
+    /* 左下角訪客或使用者資訊按鈕 */
+    #user-status-btn {
+      position: absolute;
+      bottom: 10px; left: 10px;
+      background-color: #fff;
+      padding: 10px 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      cursor: pointer;
+      z-index: 1000;
+      user-select: none;
+    }
+
+    /* 使用者卡片外殼 */
+    #user-box-wrapper {
+      position: absolute;
+      bottom: 10px; left: 10px;
+      width: 300px; max-height: 320px;
+      overflow: hidden;
+      z-index: 1001;
+      pointer-events: none;
+      transition: transform 0.3s ease;
+      transform: translateY(110%);
+      box-sizing: border-box;
+    }
+
+    /*動畫*/
+    #user-box-wrapper.active {
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    /* 使用者卡片本體 */
+    #user-box {
+      width: 100%; height: 100%;
+      background-color: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      padding: 10px 20px 20px 20px;  /* 上方內距變小讓文字往上 */
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      max-height: 320px;
+      position: relative;
+    }
+
+    /* 左邊關閉鍵，跟右邊一樣樣式 */
+    #user-close-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: #eee;
+      border: none;
+      border-radius: 50%;
+      width: 24px; height: 24px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: bold;
+      user-select: none;
+      line-height: 24px;
+      font-size: 18px;
+      padding: 0;
+      z-index: 1002;
+    }
+
+    #user-box-header {
+      font-weight: bold;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+
+    /* 收藏地點列表風格 */
+    #fav-list {
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    #fav-list button {
+      display: block;
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 8px 12px;
+      margin: 4px 0;
+      color: #555;
+      cursor: pointer;
+      font-size: 14px;
+      text-align: left;
+      border-radius: 8px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      font-family: inherit;
+    }
+
+    #fav-list button:hover {
+      background-color: #e6f0ff;
+      color: #224488;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div id="info-box">
+    <button id="close-btn">×</button>
+    <div id="info-content"></div>
+  </div>
+
+  <!-- 左下角登入狀態按鈕 -->
+  <div id="user-status-btn">訪客</div>
+
+  <!-- 左下角使用者資訊卡片 -->
+  <div id="user-box-wrapper">
+    <div id="user-box">
+      <button id="user-close-btn">×</button>
+      <div id="user-box-header">使用者資訊</div>
+      <div id="user-box-content"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+
+    // 限制地圖能看到的邊界
+    const worldBounds = L.latLngBounds(
+      L.latLng(-85.0511, -Infinity),
+      L.latLng(85.0511, Infinity)
+    );
+
+    //地圖設定
+    const map = L.map('map', {
+      center: [25.0330, 121.5654], //初始地圖中心
+      zoom: 13,  //初始縮放大小
+      minZoom: 1.2,  //最小可以縮到多少的限制
+      worldCopyJump: true,  //左右無邊際地圖
+      maxBounds: worldBounds,  //限制地圖的邊界
+      maxBoundsViscosity: 0.8  //在地圖邊邊拉一下會有回彈效果
+    });
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors' ,
+      
+    }).addTo(map);
+
+    map.on('moveend', () => {
+  if (!worldBounds.contains(map.getCenter())) {
+    map.panInsideBounds(worldBounds, { animate: true }); //限制地圖不能拉超過邊界
+  }
+});
+
+    const locations = [
+      {
+        name: "台北101",
+        lat: 25.0330,
+        lng: 121.5654,
+        description: "台灣最知名的地標與觀景台。<br/><br/>這裡有更多描述內容會讓你看到滾動效果：Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus.sum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussum dolor sit amet, consectetur adipiscing elit. Sed non risussectetur adipiscing elit. Sed non risus Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor.",
+        image: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Taipei_101_purple_sky.jpg"
+      },
+      {
+        name: "中正紀念堂",
+        lat: 25.0345,
+        lng: 121.5215,
+        description: "歷史文化場館，紀念蔣中正總統。",
+        image: "https://upload.wikimedia.org/wikipedia/commons/f/f4/Chiang_Kai-shek_memorial_amk.jpg"
+      }
+    ];
+
+    const markersMap = {};
+    const infoBox = document.getElementById("info-box");
+    const infoContent = document.getElementById("info-content");
+    const closeBtn = document.getElementById("close-btn");
+
+    function showInfo(loc) {
+      infoContent.innerHTML = `
+        <h2>${loc.name}</h2>
+        <p>${loc.description}</p>
+        <img src="${loc.image}" alt="${loc.name}" />
+      `;
+      infoBox.classList.add("active");
+    }
+
+    locations.forEach(loc => {
+      for (let i = -2; i <= 2; i++) {
+        const offsetLng = loc.lng + i * 360;
+        const marker = L.marker([loc.lat, offsetLng]).addTo(map);
+        marker.on('click', () => {
+          map.flyTo(marker.getLatLng(), 13, {animate: true,duration: 1});
+          showInfo(loc);
+        });
+        if (i === 0) markersMap[loc.name] = marker;
+      }
+    });
+
+    closeBtn.addEventListener("click", () => {
+      infoBox.classList.remove("active");
+    });
+
+    // 登入模擬
+    let isLoggedIn = false;
+    let userName = "訪客";
+    let favoritePlaces = ["台北101", "中正紀念堂"];
+
+    const userStatusBtn = document.getElementById("user-status-btn");
+    const userBoxWrapper = document.getElementById("user-box-wrapper");
+    const userBoxHeader = document.getElementById("user-box-header");
+    const userBoxContent = document.getElementById("user-box-content");
+    const userCloseBtn = document.getElementById("user-close-btn");
+
+    function updateUserBoxContent() {
+      userBoxHeader.textContent = isLoggedIn ? `👤 ${userName}` : "請先登入";
+      if (isLoggedIn) {
+        userBoxContent.innerHTML = `
+          <p>歡迎回來，${userName}！</p>
+          <p>你的收藏地點：</p>
+          <ul id="fav-list">
+            ${favoritePlaces.map(place => `<li><button type="button">${place}</button></li>`).join("")}
+          </ul>
+        `;
+        setTimeout(() => {
+          const favButtons = document.querySelectorAll('#fav-list button');
+          favButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+              const placeName = btn.textContent;
+              const marker = markersMap[placeName];
+              if (marker) {
+                map.flyTo(marker.getLatLng(), 13, {animate: true,duration: 1});
+                const loc = locations.find(l => l.name === placeName);
+                if (loc) {
+                  showInfo(loc);
+                }
+              } else {
+                alert("找不到此地點的大頭針");
+              }
+            });
+          });
+        }, 0);
+      } else {
+        userBoxContent.innerHTML = `
+          <p>請先登入以檢視收藏地點</p>
+          <button id="login-btn">登入</button>
+        `;
+        setTimeout(() => {
+          const loginBtn = document.getElementById("login-btn");
+          loginBtn.addEventListener("click", () => {
+            isLoggedIn = true;
+            userName = "阿花";
+            userStatusBtn.textContent = userName;
+            updateUserBoxContent();
+            userBoxWrapper.classList.add("active");
+          });
+        }, 0);
+      }
+    }
+
+    userStatusBtn.addEventListener("click", () => {
+      userBoxWrapper.classList.toggle("active");
+      if (!isLoggedIn) {
+        userBoxWrapper.classList.add("active");
+      }
+    });
+    userCloseBtn.addEventListener("click", () => {
+      userBoxWrapper.classList.remove("active");
+    });
+
+    updateUserBoxContent();
+
+  </script>
+</body>
+</html>
